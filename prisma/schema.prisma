@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  fullName     String
+  passwordHash String
+  phone        String?
+  role         String     @default("VEHICLE_OWNER") // "ADMIN", "OPERATOR", "VEHICLE_OWNER"
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  vehicles     Vehicle[]
+  auditLogs    AuditLog[]
+}
+
+model Vehicle {
+  id              String         @id @default(uuid())
+  ownerId         String
+  normalizedPlate String         @unique
+  displayPlate    String
+  vehicleType     String         @default("CAR") // "CAR", "MOTORCYCLE", "VAN", "EV", "TRUCK"
+  make            String?
+  model           String?
+  color           String?
+  status          String         @default("ACTIVE") // "ACTIVE", "SUSPENDED"
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  owner           User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  qrCredentials   QRCredential[]
+  parkingSessions ParkingSession[]
+  reservations    Reservation[]
+
+  @@index([ownerId])
+  @@index([normalizedPlate])
+}
+
+model QRCredential {
+  id               String    @id @default(uuid())
+  vehicleId        String
+  tokenHash        String    @unique
+  rawTokenPreview  String
+  status           String    @default("ACTIVE") // "ACTIVE", "REVOKED", "EXPIRED"
+  expiresAt        DateTime?
+  revokedAt        DateTime?
+  revocationReason String?
+  createdAt        DateTime  @default(now())
+
+  vehicle          Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([tokenHash])
+}
+
+model ParkingFacility {
+  id               String           @id @default(uuid())
+  name             String
+  code             String           @unique
+  address          String
+  timezone         String           @default("UTC")
+  totalCapacity    Int              @default(50)
+  currentOccupancy Int              @default(0)
+  hourlyRate       Float            @default(2.50)
+  status           String           @default("ACTIVE") // "ACTIVE", "MAINTENANCE"
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  zones            ParkingZone[]
+  gates            ParkingGate[]
+  sessions         ParkingSession[]
+  reservations     Reservation[]
+}
+
+model ParkingZone {
+  id               String         @id @default(uuid())
+  facilityId       String
+  name             String
+  code             String
+  capacity         Int            @default(20)
+  currentOccupancy Int            @default(0)
+  status           String         @default("ACTIVE")
+
+  facility         ParkingFacility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  spaces           ParkingSpace[]
+  sessions         ParkingSession[]
+
+  @@index([facilityId])
+}
+
+model ParkingSpace {
+  id              String          @id @default(uuid())
+  zoneId          String
+  spaceNumber     String
+  spaceType       String          @default("STANDARD") // "STANDARD", "EV_CHARGING", "ACCESSIBLE", "MOTORCYCLE"
+  status          String          @default("AVAILABLE") // "AVAILABLE", "OCCUPIED", "RESERVED", "MAINTENANCE"
+  activeSessionId String?
+
+  zone            ParkingZone     @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  sessions        ParkingSession[]
+
+  @@index([zoneId])
+}
+
+model ParkingGate {
+  id            String           @id @default(uuid())
+  facilityId    String
+  name          String
+  code          String           @unique
+  gateType      String           @default("BIDIRECTIONAL") // "ENTRY", "EXIT", "BIDIRECTIONAL"
+  status        String           @default("ONLINE") // "ONLINE", "OFFLINE"
+
+  facility      ParkingFacility  @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  entrySessions ParkingSession[] @relation("EntryGate")
+  exitSessions  ParkingSession[] @relation("ExitGate")
+
+  @@index([facilityId])
+}
+
+model ParkingSession {
+  id             String          @id @default(uuid())
+  vehicleId      String
+  facilityId     String
+  zoneId         String?
+  spaceId        String?
+  entryGateId    String?
+  exitGateId     String?
+  entryTime      DateTime        @default(now())
+  exitTime       DateTime?
+  durationMinutes Int?
+  feeAmount      Float?          @default(0)
+  status         String          @default("ACTIVE") // "ACTIVE", "COMPLETED", "CANCELLED"
+  idempotencyKey String?         @unique
+  notes          String?
+  createdAt      DateTime        @default(now())
+
+  vehicle        Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  facility       ParkingFacility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  zone           ParkingZone?    @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  space          ParkingSpace?   @relation(fields: [spaceId], references: [id], onDelete: SetNull)
+  entryGate      ParkingGate?    @relation("EntryGate", fields: [entryGateId], references: [id], onDelete: SetNull)
+  exitGate       ParkingGate?    @relation("ExitGate", fields: [exitGateId], references: [id], onDelete: SetNull)
+
+  @@index([vehicleId])
+  @@index([facilityId])
+  @@index([status])
+  @@index([entryTime])
+}
+
+model Reservation {
+  id          String          @id @default(uuid())
+  vehicleId   String
+  facilityId  String
+  startTime   DateTime
+  endTime     DateTime
+  status      String          @default("CONFIRMED") // "PENDING", "CONFIRMED", "CHECKED_IN", "CANCELLED", "EXPIRED"
+  createdAt   DateTime        @default(now())
+
+  vehicle     Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  facility    ParkingFacility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([facilityId])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   String?  // JSON string
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([action])
+  @@index([createdAt])
+}

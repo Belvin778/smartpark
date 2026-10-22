@@ -5,6 +5,8 @@ import { CreateVehicleSchema, normalizePlate } from "@/lib/validators";
 import { issueQRCredential } from "@/lib/services/qr.service";
 import { recordAuditLog } from "@/lib/services/audit.service";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const user = await getAuthUserFromRequest(req);

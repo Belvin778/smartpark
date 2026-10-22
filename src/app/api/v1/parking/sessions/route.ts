@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { getAuthUserFromRequest } from "@/lib/auth";
 import { normalizePlate } from "@/lib/validators";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const user = await getAuthUserFromRequest(req);

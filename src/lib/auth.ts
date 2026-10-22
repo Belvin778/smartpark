@@ -21,8 +21,9 @@ export async function comparePassword(plain: string, hashed: string): Promise<bo
   return bcrypt.compare(plain, hashed);
 }
 
-export function signToken(payload: TokenPayload, expiresIn = "7d"): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+export function signToken(payload: TokenPayload, expiresIn: string | number = "7d"): string {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: expiresIn as any });
 }
 
 export function verifyToken(token: string): TokenPayload | null {

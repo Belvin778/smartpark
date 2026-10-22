@@ -4,9 +4,9 @@
   "private": true,
   "description": "SmartPark — Enterprise Smart Parking Management Platform",
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "next dev",
     "build": "next build",
-    "start": "next start -p 3000",
+    "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",

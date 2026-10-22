@@ -1,0 +1,8 @@
+node_modules
+.next
+.git
+dev.db
+dev.db-journal
+*.log
+.env
+.env.local

@@ -48,6 +48,38 @@ npm run dev
 
 Open **http://localhost:3000**
 
+## 🌐 Cloud Deployment (Render & Railway)
+
+### Option A: Render (1-Click Deployment with PostgreSQL)
+This repository includes a `render.yaml` blueprint that provisions both the **Next.js Web Service** and a **free PostgreSQL Database** automatically.
+
+1. Go to [dashboard.render.com](https://dashboard.render.com) and sign in with GitHub.
+2. Click **New +** → **Blueprint**.
+3. Select your repository: `Belvin778/smartpark`.
+4. Click **Apply**.
+Render will automatically:
+- Create the PostgreSQL database.
+- Connect the connection string to `DATABASE_URL`.
+- Generate a secure `JWT_SECRET`.
+- Push the schema & seed the demo data.
+- Build and launch the web app with a free HTTPS URL!
+
+---
+
+### Option B: Railway (1-Click Deployment)
+1. Go to [railway.app](https://railway.app) and sign in with GitHub.
+2. Click **New Project** → **Deploy from GitHub repo**.
+3. Select `Belvin778/smartpark`.
+4. Click **+ New** → **Database** → **Add PostgreSQL**.
+5. In your web service settings, add environment variable:
+   - `DATABASE_URL`: `${{Postgres.DATABASE_URL}}`
+   - `JWT_SECRET`: Any random 32-character string
+6. In **Settings** → **Deploy**, set the custom build command:
+   `cp prisma/schema.postgresql.prisma prisma/schema.prisma && npx prisma db push && node scripts/seed.js && npm run build`
+7. Click **Deploy**.
+
+---
+
 ## 🔑 Demo Accounts
 
 | Role | Email | Password |
